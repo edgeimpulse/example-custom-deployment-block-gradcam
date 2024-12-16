@@ -66,6 +66,7 @@ docker build -t gradcam-deployment-block .
 ```
 
 **Run**:
+
 ```
 docker run --rm -it gradcam-deployment-block --api-key ei_123456789abcdef
 ```

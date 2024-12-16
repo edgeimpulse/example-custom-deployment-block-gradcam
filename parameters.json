@@ -2,13 +2,13 @@
     "version": 1,
     "type": "deploy",
     "info": {
-        "name": "Test dataset gradcam overlay",
+        "name": "Gradcam visualization",
         "description": "Generate gradcam images for your testing dataset - Only works for image projects with Conv2D layers",
         "category": "library",
         "mountLearnBlock": false,
         "supportsEonCompiler": false,
         "showOptimizations": true,
-        "cliArguments": "--alpha 0.3",
+        "cliArguments": "--alpha 0.4",
         "privileged": true,
         "integrateUrl": "https://github.com/edgeimpulse/example-custom-deployment-block-gradcam"
     }

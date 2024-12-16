@@ -14,6 +14,7 @@ import sys
 import argparse
 import requests
 import zipfile
+import shutil
 import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.models import Model, load_model
@@ -24,11 +25,12 @@ import cv2
 parser = argparse.ArgumentParser(description="Grad-CAM deployment block")
 parser.add_argument('--api-key', type=str, required=False, help="Edge Impulse Studio API Key")
 parser.add_argument('--metadata', type=str, required=False, help="Deployment metadata json file")
+parser.add_argument('--alpha', type=float, default=0.4, required=False, help="Alpha value")
 args = parser.parse_args()
 
 # Define Edge Impulse API credentials
 ei_api_key = None
-ALPHA=0.4
+ALPHA=args.alpha
 
 # Get EI API Key
 if args.metadata:
@@ -95,7 +97,7 @@ print(f"Retrieved class names: {classes}")
 # Create export job for dataset
 def create_export_job(project_id):
     url = f"{base_url}/{project_id}/jobs/export/original"
-    response = requests.post(url, headers=headers)
+    response = requests.post(url, headers=headers, json={"uploaderFriendlyFilenames":True,"retainCrops":True})
     response.raise_for_status()
     return response.json()
 
@@ -319,3 +321,6 @@ for img_name in [f for f in os.listdir(test_set_dir) if f.lower().endswith(('.pn
     display_and_save_gradcam(img_path, heatmap, output_dir)
 
 print("Grad-CAM visualizations completed.")
+
+# Final step: Create a zip archive of the output folder
+shutil.make_archive(base_name=os.path.join(output_folder, 'deploy'), format='zip', root_dir=os.path.join(output_folder, 'gradcam'))
