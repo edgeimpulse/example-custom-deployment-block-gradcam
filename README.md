@@ -71,6 +71,76 @@ docker build -t gradcam-deployment-block .
 docker run --rm -it gradcam-deployment-block --api-key ei_123456789abcdef
 ```
 
+## Fine-tuning the visualization
+
+You can adjust **three parameters** to fine-tune the visualization: `alpha`, `pooling-gradients`, and `heatmap-normalization`.
+
+### 1. **Alpha (`--alpha`)**
+
+The `alpha` parameter controls the **transparency** of the Grad-CAM overlay when it is superimposed on the original image.
+
+**Default Value**: `0.4`
+
+**Range**:
+
+- A value between `0` and `1`.
+  - `0`: Fully transparent (only the original image is visible).
+  - `1`: Fully opaque (only the Grad-CAM overlay is visible).
+
+**How to Choose**:
+
+- **Recommended Default (`0.4`)**:
+  Provides a balance between showing the original image and highlighting the Grad-CAM heatmap.
+- **Higher Alpha (`> 0.5`)**:
+  Use this if you want the Grad-CAM heatmap to dominate the visualization.
+- **Lower Alpha (`< 0.4`)**:
+  Use this if you want the original image to be more prominent.
+
+### 2. **Pooling Gradients (`--pooling-gradients`)**
+
+The `pooling-gradients` parameter determines how gradients (importance signals) are combined across the spatial dimensions of the last convolutional layer to generate the heatmap.
+
+**Options**:
+
+- `mean` (default):
+  - Averages the gradients across the spatial dimensions.
+  - Smoothens the heatmap, providing a general overview of important regions.
+- `sum_abs`:
+  - Takes the sum of the absolute values of the gradients.
+  - Highlights areas with strong activations, which can sometimes create sharper heatmaps.
+
+**How to Choose**:
+
+- **Classification Models**:
+  - Use `mean` for a smoother and more generalized heatmap.
+  - Use `sum_abs` if you want to emphasize the most critical regions (e.g., sharp object boundaries).
+- **Regression Models**:
+  - `sum_abs` is often more useful for regression tasks, as it highlights features contributing to extreme values.
+- **Experiment**:
+  Try both options to see which one provides more meaningful visualizations for your model and dataset.
+
+---
+
+### 3. **Heatmap Normalization (`--heatmap-normalization`)**
+
+The `heatmap-normalization` parameter determines how the heatmap values are scaled for visualization.
+
+**Options**:
+
+- `percentile` (default):
+  - Ensures the heatmap values are scaled between `0` and `1` based on their maximum value.
+  - Best for emphasizing high-activation areas while normalizing the output globally.
+- `simple`:
+  - Normalizes the heatmap by dividing by the global maximum.
+  - A simpler approach that may work well for datasets where most activations are relevant.
+
+**How to Choose**:
+
+- **Default (`percentile`)**:
+  - Works well in most cases, especially if you expect only certain areas of the image to be significant.
+- **Use `simple`**:
+  - Suitable for models where the activations are uniformly spread, and all areas are equally important.
+
 ## Limitations
 
 1. This script assumes the presence of at least one 2D convolutional layer in the model architecture.

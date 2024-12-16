@@ -26,11 +26,15 @@ parser = argparse.ArgumentParser(description="Grad-CAM deployment block")
 parser.add_argument('--api-key', type=str, required=False, help="Edge Impulse Studio API Key")
 parser.add_argument('--metadata', type=str, required=False, help="Deployment metadata json file")
 parser.add_argument('--alpha', type=float, default=0.4, required=False, help="Alpha value")
+parser.add_argument('--pooling-gradients', type=str, default="mean", choices=["mean", "sum_abs"], help="Method to pool gradients for Grad-CAM ('mean' or 'sum_abs')")
+parser.add_argument('--heatmap-normalization', type=str, default="percentile", choices=["percentile", "simple"], help="Method to normalize the Grad-CAM heatmap ('percentile' or 'simple')")
 args = parser.parse_args()
 
 # Define Edge Impulse API credentials
 ei_api_key = None
 ALPHA=args.alpha
+pooling_gradients = args.pooling_gradients
+heatmap_normalization = args.heatmap_normalization
 
 # Get EI API Key
 if args.metadata:
@@ -231,10 +235,11 @@ def preprocess_image(img_path):
 
 # **4. Grad-CAM Implementation**
 
-# Updated Grad-CAM implementation
+# Grad-CAM implementation
 @tf.function
-def make_gradcam_heatmap(img_array, grad_model):
+def make_gradcam_heatmap(img_array, grad_model, pooling_gradients="mean", heatmap_normalization="percentile"):
     with tf.GradientTape() as tape:
+        # Compute predictions and activations
         last_conv_layer_output, preds = grad_model(img_array)
         
         if class_names:
@@ -247,22 +252,33 @@ def make_gradcam_heatmap(img_array, grad_model):
             class_channel = preds[:, 0]  # Use the single regression output
 
     # Calculate gradients with respect to the last convolutional layer
-    grads = tape.gradient(class_channel, last_conv_layer_output)
-    # pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
-    pooled_grads = tf.reduce_sum(tf.abs(grads), axis=(0, 1, 2))  # Sum of absolute gradients
+    grads = tape.gradient(class_channel, last_conv_layer_output)  # <-- This line is critical
+
+    # Pool gradients based on the selected method
+    if pooling_gradients == "mean":
+        pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))  # Mean pooling
+    elif pooling_gradients == "sum_abs":
+        pooled_grads = tf.reduce_sum(tf.abs(grads), axis=(0, 1, 2))  # Sum of absolute gradients
+    else:
+        raise ValueError("Invalid pooling-gradients method. Choose 'mean' or 'sum_abs'.")
+
+    # Create heatmap
     last_conv_layer_output = last_conv_layer_output[0]
     heatmap = last_conv_layer_output @ pooled_grads[..., tf.newaxis]
     heatmap = tf.squeeze(heatmap)
 
-    # Normalize the heatmap (use one or the other)
-    # heatmap = tf.maximum(heatmap, 0) / tf.math.reduce_max(heatmap)
-    # return heatmap  # Return the tensor directly
+    # Normalize the heatmap based on the selected method
+    if heatmap_normalization == "percentile":
+        heatmap = tf.maximum(heatmap, 0)  # ReLU to remove negatives
+        max_value = tf.reduce_max(heatmap)
+        heatmap = heatmap / max_value if max_value != 0 else heatmap  # Avoid division by zero
+    elif heatmap_normalization == "simple":
+        heatmap = tf.maximum(heatmap, 0) / tf.reduce_max(heatmap)  # Simple normalization
+    else:
+        raise ValueError("Invalid heatmap-normalization method. Choose 'percentile' or 'simple'.")
 
-    # Percentile normalization
-    heatmap = tf.maximum(heatmap, 0)  # ReLU to remove negatives
-    max_value = tf.reduce_max(heatmap)
-    heatmap = heatmap / max_value if max_value != 0 else heatmap  # Avoid division by zero
     return heatmap
+
 
 # Function to display and save Grad-CAM heatmap
 def display_and_save_gradcam(img_path, heatmap, output_dir, alpha=ALPHA):
@@ -308,7 +324,11 @@ for img_name in [f for f in os.listdir(test_set_dir) if f.lower().endswith(('.pn
         # Regression
         predicted_value = preds[0][0]
         error = abs(predicted_value - float(true_class))  # Assuming filenames contain true regression values
-        heatmap = make_gradcam_heatmap(img_array, grad_model).numpy()
+        heatmap = make_gradcam_heatmap(
+            img_array, grad_model, 
+            pooling_gradients=pooling_gradients, 
+            heatmap_normalization=heatmap_normalization
+        ).numpy()
 
         # Determine the output directory based on prediction correctness
         threshold = 0.1  # Define a threshold for acceptable error
