@@ -1,4 +1,5 @@
 tensorflow==2.11
 opencv-python
 requests
-zipfile
+numpy<2
+Pillow

@@ -42,11 +42,11 @@ If you want more information on the Grad-CAM technique, we invite you to read th
 
 To test the functionality without setting up locally, use this [Google Colab](https://colab.research.google.com/drive/1UE8LUE6X8M1COk98Jj7n3XS5YjwGUOnE?usp=sharing). It comes pre-configured to run in a browser with no local setup required.
 
-## Setup
+## Custom block setup
 
 ```
 edge-impulse-blocks init
-Edge Impulse Blocks v1.29.5
+Edge Impulse Blocks v1.30.3
 ? In which organization do you want to create this block? Developer Relations
 Attaching block to organization 'Developer Relations'
 ? Choose an option Create a new block
@@ -55,6 +55,19 @@ Attaching block to organization 'Developer Relations'
 
 Your new block has been created in '/Users/luisomoreau/workspace/ei/custom-deployment-gradcam'.
 When you have finished building your block, run 'edge-impulse-blocks push' to update the block in Edge Impulse.
+```
+
+## Testing locally with Docker
+
+**Build**:
+
+```
+docker build -t gradcam-deployment-block .
+```
+
+**Run**:
+```
+docker run --rm -it gradcam-deployment-block --api-key ei_123456789abcdef
 ```
 
 ## Limitations
