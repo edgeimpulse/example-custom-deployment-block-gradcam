@@ -9,6 +9,9 @@
 import os
 import numpy as np
 import time
+import json
+import sys
+import argparse
 import requests
 import zipfile
 import tensorflow as tf
@@ -18,15 +21,36 @@ import cv2
 
 
 # **2. Download Dataset and Model from Edge Impulse**
+parser = argparse.ArgumentParser(description="Grad-CAM deployment block")
+parser.add_argument('--api-key', type=str, required=False, help="Edge Impulse Studio API Key")
+parser.add_argument('--metadata', type=str, required=False, help="Deployment metadata json file")
+args = parser.parse_args()
 
 # Define Edge Impulse API credentials
-EI_API_KEY = "ei_55f9e9eb16ad3d9483a4e5890d1fffe0fef269319317e00e50351db5c64f6344"  # Replace with your API Key
+ei_api_key = None
 ALPHA=0.4
+
+# Get EI API Key
+if args.metadata:
+    with open(args.metadata) as f:
+        metadata = json.load(f)
+        ei_api_key = metadata['project']['apiKey']
+        ei_project_name = metadata['project']['name']
+        output_folder = metadata['folders']['output']
+        print(f"Retrieved {ei_project_name} project's metadata...")
+else:
+    print('No metadata.json file found, will use --api-key')
+    if args.api_key is None:
+        print("Error: --api-key not set")
+        sys.exit(1)
+    ei_api_key = args.api_key
+    output_folder = None
+
 
 # Define the base URL and headers
 base_url = "https://studio.edgeimpulse.com/v1/api"
 headers = {
-    "x-api-key": EI_API_KEY,
+    "x-api-key": ei_api_key,
     "Content-Type": "application/json"
 }
 
@@ -41,7 +65,9 @@ project_id = get_project_id()
 EI_PROJECT_ID = str(project_id["projects"][0]["id"])
 print(f"Project ID: {EI_PROJECT_ID}")
 
-output_folder = "output_" + EI_PROJECT_ID 
+# Set the output folder if it was not already defined
+if not output_folder:
+    output_folder = f"output_{EI_PROJECT_ID}"
 
 
 # Retrieve the Impulse information to extract learn block ID
