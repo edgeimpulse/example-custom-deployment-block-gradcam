@@ -42,9 +42,17 @@ If you want more information on the Grad-CAM technique, we invite you to read th
 
 To test the functionality without setting up locally, use this [Google Colab](https://colab.research.google.com/drive/1UE8LUE6X8M1COk98Jj7n3XS5YjwGUOnE?usp=sharing). It comes pre-configured to run in a browser with no local setup required.
 
-## Custom block setup
+## Custom deployment block
 
+Clone this repository:
+
+```bash
+git clone git@github.com:edgeimpulse/example-custom-deployment-block-gradcam.git
 ```
+
+Initialize the block:
+
+```bash
 edge-impulse-blocks init
 Edge Impulse Blocks v1.30.3
 ? In which organization do you want to create this block? Developer Relations
@@ -55,6 +63,12 @@ Attaching block to organization 'Developer Relations'
 
 Your new block has been created in '/Users/luisomoreau/workspace/ei/custom-deployment-gradcam'.
 When you have finished building your block, run 'edge-impulse-blocks push' to update the block in Edge Impulse.
+```
+
+Push the deployment block to your organization:
+
+```bash
+edge-impulse-block push
 ```
 
 ## Testing locally with Docker
@@ -118,8 +132,6 @@ The `pooling-gradients` parameter determines how gradients (importance signals) 
   - `sum_abs` is often more useful for regression tasks, as it highlights features contributing to extreme values.
 - **Experiment**:
   Try both options to see which one provides more meaningful visualizations for your model and dataset.
-
----
 
 ### 3. **Heatmap Normalization (`--heatmap-normalization`)**
 

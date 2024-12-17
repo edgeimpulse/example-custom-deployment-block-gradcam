@@ -8,7 +8,7 @@
         "mountLearnBlock": false,
         "supportsEonCompiler": false,
         "showOptimizations": true,
-        "cliArguments": "--alpha 0.4",
+        "cliArguments": "--alpha 0.4 --pooling-gradients sum_abs --heatmap-normalization percentile",
         "privileged": true,
         "integrateUrl": "https://github.com/edgeimpulse/example-custom-deployment-block-gradcam"
     }

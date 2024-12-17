@@ -32,7 +32,7 @@ args = parser.parse_args()
 
 # Define Edge Impulse API credentials
 ei_api_key = None
-ALPHA=args.alpha
+alpha=args.alpha
 pooling_gradients = args.pooling_gradients
 heatmap_normalization = args.heatmap_normalization
 
@@ -142,11 +142,11 @@ dataset_url = get_export_url(EI_PROJECT_ID)
 dataset_zip_path = download_dataset(dataset_url, "edge_impulse_dataset")
 
 # Extract the dataset
-output_dir = output_folder + "/edge_impulse_dataset"
-print(output_dir)
-os.makedirs(output_dir, exist_ok=True)
+dataset_dir = output_folder + "/edge_impulse_dataset"
+print(dataset_dir)
+os.makedirs(dataset_dir, exist_ok=True)
 with zipfile.ZipFile(dataset_zip_path, 'r') as zip_ref:
-    zip_ref.extractall(output_dir)
+    zip_ref.extractall(dataset_dir)
 
 # Download the trained model
 def get_model_url(project_id, learn_block_id):
@@ -237,7 +237,7 @@ def preprocess_image(img_path):
 
 # Grad-CAM implementation
 @tf.function
-def make_gradcam_heatmap(img_array, grad_model, pooling_gradients="mean", heatmap_normalization="percentile"):
+def make_gradcam_heatmap(img_array, grad_model, pooling_gradients, heatmap_normalization):
     with tf.GradientTape() as tape:
         # Compute predictions and activations
         last_conv_layer_output, preds = grad_model(img_array)
@@ -281,7 +281,7 @@ def make_gradcam_heatmap(img_array, grad_model, pooling_gradients="mean", heatma
 
 
 # Function to display and save Grad-CAM heatmap
-def display_and_save_gradcam(img_path, heatmap, output_dir, alpha=ALPHA):
+def display_and_save_gradcam(img_path, heatmap, output_dir, alpha=alpha):
     img = cv2.imread(img_path)
     img = cv2.resize(img, input_size)
     heatmap = cv2.resize(heatmap, (img.shape[1], img.shape[0]))
@@ -294,7 +294,7 @@ def display_and_save_gradcam(img_path, heatmap, output_dir, alpha=ALPHA):
 
 # **5. Grad-CAM Visualization on Dataset**
 
-test_set_dir = os.path.join(output_dir, "testing")  # Replace with your test set directory
+test_set_dir = os.path.join(dataset_dir, "testing") 
 correct_dir = output_folder + "/gradcam/correct"
 incorrect_dir = output_folder + "/gradcam/incorrect"
 os.makedirs(correct_dir, exist_ok=True)
@@ -302,6 +302,7 @@ os.makedirs(incorrect_dir, exist_ok=True)
 
 for img_name in [f for f in os.listdir(test_set_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff'))]:  # Filter only image files
     img_path = os.path.join(test_set_dir, img_name)
+
     # Dynamically determine the true class from the file name (label before the first dot)
     true_class = img_name.split('.')[0]
 
@@ -312,7 +313,12 @@ for img_name in [f for f in os.listdir(test_set_dir) if f.lower().endswith(('.pn
         # Classification
         predicted_class = class_names[np.argmax(preds)]
         grad_model = create_grad_model(model, last_conv_layer_name)
-        heatmap = make_gradcam_heatmap(img_array, grad_model).numpy()
+        heatmap = make_gradcam_heatmap(
+            img_array, 
+            grad_model, 
+            pooling_gradients=pooling_gradients, 
+            heatmap_normalization=heatmap_normalization
+        ).numpy()
 
         # Determine the output directory based on prediction correctness
         if predicted_class == true_class:
@@ -325,7 +331,8 @@ for img_name in [f for f in os.listdir(test_set_dir) if f.lower().endswith(('.pn
         predicted_value = preds[0][0]
         error = abs(predicted_value - float(true_class))  # Assuming filenames contain true regression values
         heatmap = make_gradcam_heatmap(
-            img_array, grad_model, 
+            img_array, 
+            grad_model, 
             pooling_gradients=pooling_gradients, 
             heatmap_normalization=heatmap_normalization
         ).numpy()
