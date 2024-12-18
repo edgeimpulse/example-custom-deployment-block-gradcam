@@ -73,6 +73,18 @@ Push the deployment block to your organization:
 edge-impulse-block push
 ```
 
+Now you should see your custom deployment block in your organization:
+
+![Custom block overview](/assets/grad-cam-custom-block-overview.png)
+
+And you can [adjust the parameters](#fine-tuning-the-visualization) by editing the custom deployment block:
+
+![Custom block edit](/assets/grad-cam-custom-block-edit.png)
+
+*Make sure to enable the **Priviledge** mode, this custom block needs to make API requests to retrieve the dataset and the `.h5` model*
+
+To use your custom block within your project, head to the **Deployment** page and select the **Grad-CAM visualization** option, the output will be a `.zip` file containing your test dataset with the Grad-Cam overlay. 
+
 ## Testing locally with Docker
 
 **Build**:
