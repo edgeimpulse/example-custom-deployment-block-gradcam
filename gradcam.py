@@ -26,8 +26,9 @@ parser = argparse.ArgumentParser(description="Grad-CAM deployment block")
 parser.add_argument('--api-key', type=str, required=False, help="Edge Impulse Studio API Key")
 parser.add_argument('--metadata', type=str, required=False, help="Deployment metadata json file")
 parser.add_argument('--alpha', type=float, default=0.4, required=False, help="Alpha value")
-parser.add_argument('--pooling-gradients', type=str, default="mean", choices=["mean", "sum_abs"], help="Method to pool gradients for Grad-CAM ('mean' or 'sum_abs')")
+parser.add_argument('--pooling-gradients', type=str, default="sum_abs", choices=["mean", "sum_abs"], help="Method to pool gradients for Grad-CAM ('mean' or 'sum_abs')")
 parser.add_argument('--heatmap-normalization', type=str, default="percentile", choices=["percentile", "simple"], help="Method to normalize the Grad-CAM heatmap ('percentile' or 'simple')")
+parser.add_argument('--skip-dataset-download', action='store_true', help="Skip dataset download")
 args = parser.parse_args()
 
 # Define Edge Impulse API credentials
@@ -138,15 +139,20 @@ def download_dataset(url, project_name):
     return file_path
 
 
-dataset_url = get_export_url(EI_PROJECT_ID)
-dataset_zip_path = download_dataset(dataset_url, "edge_impulse_dataset")
+if not args.skip_dataset_download:
+    dataset_url = get_export_url(EI_PROJECT_ID)
+    dataset_zip_path = download_dataset(dataset_url, "edge_impulse_dataset")
 
-# Extract the dataset
-dataset_dir = output_folder + "/edge_impulse_dataset"
-print(dataset_dir)
-os.makedirs(dataset_dir, exist_ok=True)
-with zipfile.ZipFile(dataset_zip_path, 'r') as zip_ref:
-    zip_ref.extractall(dataset_dir)
+    # Extract the dataset
+    dataset_dir = os.path.join(output_folder, "edge_impulse_dataset")
+    print(dataset_dir)
+    os.makedirs(dataset_dir, exist_ok=True)
+    with zipfile.ZipFile(dataset_zip_path, 'r') as zip_ref:
+        zip_ref.extractall(dataset_dir)
+else:
+    print("Skipping dataset download as per --skip-dataset-download flag.")
+    dataset_dir = os.path.join(output_folder, "edge_impulse_dataset")
+    print(dataset_dir)
 
 # Download the trained model
 def get_model_url(project_id, learn_block_id):
@@ -227,11 +233,15 @@ grad_model = create_grad_model(model, last_conv_layer_name)
 
 # Function to preprocess an image
 def preprocess_image(img_path):
-    img = image.load_img(img_path, target_size=input_size)  # Ensure target size matches model input size
-    img = image.img_to_array(img)
-    img = np.expand_dims(img, axis=0)
-    img = img / 255.0  # Normalize
-    return img
+    try:
+        img = image.load_img(img_path, target_size=input_size)  # Ensure target size matches model input size
+        img = image.img_to_array(img)
+        img = np.expand_dims(img, axis=0)
+        img = img / 255.0  # Normalize
+        return img
+    except Exception as e:
+        print(f"Error processing image {img_path}: {e}")
+        return None
 
 # **4. Grad-CAM Implementation**
 
@@ -307,6 +317,9 @@ for img_name in [f for f in os.listdir(test_set_dir) if f.lower().endswith(('.pn
     true_class = img_name.split('.')[0]
 
     img_array = preprocess_image(img_path)
+    if img_array is None:
+        print(f"Skipping image {img_name} due to preprocessing error.")
+        continue  # Skip this image
     preds = model.predict(img_array)
 
     if class_names:

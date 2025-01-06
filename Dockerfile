@@ -12,6 +12,6 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt ./
 RUN pip3 --no-cache-dir install -r requirements.txt
 
-COPY . ./
+COPY gradcam.py ./
 
 ENTRYPOINT [ "python3", "-u", "gradcam.py" ]
