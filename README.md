@@ -6,7 +6,7 @@ This custom deployment block example exports your test dataset and applies a gra
 
 ![Example of a “car vs not car” model, highlighting the learned “features” of a car](/assets/grad-cam-example.png)
 
-*Note: This currently works for image classification and visual regression models where at least one 2D convolution layer is present in your architecture.*
+*Note: This currently works for RGB image classification and visual regression models where at least one 2D convolution layer is present in your architecture.*
 
 ## Grad-CAM details
 
